@@ -9,8 +9,8 @@ import numpy as np
 	# * 3. ask user for sub grids
 # 3. score each cell based on different hueristics
 	# --- score by number of options
-	# score by influence on other cells in row/col/subgrid
-	# score by number of influencable cells
+	# --- score by influence on other cells in row/col/subgrid
+	# --- score by number of influencable cells
 # 4. interact with user about best cell
 	# 1. show best cell and ask user to solve 
 	# * 2. provide extra hints so the user can solve it
@@ -141,7 +141,7 @@ class Sudoku:
 					equal_array = np.intersect1d(current_cel, self.options[row][col])
 					score += (options_length - len(equal_array)) / options_length
 
-				influenced_cells.append([row, col])
+					influenced_cells.append([row, col])
 
 		for r in range(self.grid_size):
 			if(r != row):
@@ -158,6 +158,8 @@ class Sudoku:
 			for c in range(subgrid_col_start, subgrid_col_start + self.subgrid_size):
 				if (r != row or c != col):
 					calculate_score(self, r, c)
+
+		score += len(influenced_cells)
 
 		return score
 
