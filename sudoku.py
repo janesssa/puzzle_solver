@@ -71,16 +71,19 @@ class Sudoku:
 
 
 	# Check if placement is valid
-	def is_valid_cell(self, row, col, num):
+	def is_valid_num(self, row, col, num):
 		for x in range(self.grid_size):
 			if self.board[row][x] == num or self.board[x][col] == num:
 				return False
-		start_row = self.subgrid_size * (col // self.subgrid_size)
+
+		start_row = self.subgrid_size * (row // self.subgrid_size)
 		start_col = self.subgrid_size * (col // self.subgrid_size)
+
 		for i in range(self.subgrid_size):
 			for j in range(self.subgrid_size):
 				if self.board[i + start_row][j + start_col] == num:
 					return False
+
 		return True
 
 	def solve_sudoku(self):
@@ -92,39 +95,90 @@ class Sudoku:
 				if(self.board[row][col] == 0):
 					# change to this, if speed matter
 					# for num in range(len(options[row][col]) + 1, 10):
-					for num in range(self.grid_size):
-						if self.is_valid_cell(row, col, num):
+					for num in range(1, self.grid_size + 1):
+						if self.is_valid_num(row, col, num):
 							if num not in self.options[row][col]:
 								self.options[row][col].append(num)
 		return self.options
 
 	def get_best_cell(self):
 		best_row, best_col = -1, -1
-		best_score = float('inf')
+		best_score = 0
 
-		scores = np.full((self.grid_size, self.grid_size), np.nan)
+		scores = np.zeros((self.grid_size, self.grid_size))
+		single_options = []
 
 		for row in range(self.grid_size):
 			for col in range(self.grid_size):
-				scores[row][col] = self.score_sudoku_cell(row, col)
+				if(len(self.options[row][col]) > 0):
+					if(len(self.options[row][col]) == 1):
+						scores[row][col] = 100
+						single_options.append([row, col, self.options[row][col][0]])
+					scores[row][col] += self.score_sudoku_cell(row, col)
 
-		print(scores)
+		for row in range(self.grid_size):
+			for col in range(self.grid_size):
+				if(scores[row][col] > best_score):
+					best_score = scores[row][col]
+					best_row, best_col = row, col
+
+		return best_row, best_col, int(best_score), single_options
 
 	def score_sudoku_cell(self, row, col):
-		return len(self.options[row][col])
+		current_cel = self.options[row][col]
+		score = 0
+		influenced_cells = []
+
+		def calculate_score(self, row, col):
+			nonlocal current_cel, score, influenced_cells
+			if([row, col] in influenced_cells):
+				return
+			else:
+				options_length = len(self.options[row][col])
+				if(options_length > 0):
+					score += (1 / options_length)
+
+					equal_array = np.intersect1d(current_cel, self.options[row][col])
+					score += (options_length - len(equal_array)) / options_length
+
+				influenced_cells.append([row, col])
+
+		for r in range(self.grid_size):
+			if(r != row):
+				calculate_score(self, r, col)
+
+		for c in range(self.grid_size):
+			if(c != col):
+				calculate_score(self, row, c)
+
+		subgrid_row_start = (row // self.subgrid_size) * self.subgrid_size
+		subgrid_col_start = (col // self.subgrid_size) * self.subgrid_size
+
+		for r in range(subgrid_row_start, subgrid_row_start + self.subgrid_size):
+			for c in range(subgrid_col_start, subgrid_col_start + self.subgrid_size):
+				if (r != row or c != col):
+					calculate_score(self, r, c)
+
+		return score
 
 
 # Main program
 if __name__ == '__main__':
-	grid_size = input("What is the size of the grid? ")
+	grid_size = 9
+	# grid_size = input("What is the size of the grid? ")
 	sudoku = Sudoku(9)
 	sudoku.set_board()
 	print("\nInitial board:")
 	sudoku.print_board()
 	options = sudoku.get_options()
-	print("\nOptions:")
-	print(options)
-	best_cell = sudoku.get_best_cell()
+
+	row, col, score, single_options = sudoku.get_best_cell()
+
+	print("\nNext best options:")
+	if len(single_options) > 0:
+		for r, c, o in single_options:
+			print(f"\nRow {r + 1} and column {c + 1} has one option: {o}")
+	print(f"\nRow {row + 1} and column {col + 1} is the next best cell to fill in with a score of {score}")
 
 
 
