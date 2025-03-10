@@ -1,5 +1,6 @@
 import math
 import numpy as np
+from pick import pick
 
 # TODO
 # 1. cleanup code
@@ -12,7 +13,7 @@ import numpy as np
 	# --- score by influence on other cells in row/col/subgrid
 	# --- score by number of influencable cells
 # 4. interact with user about best cell
-	# 1. show best cell and ask user to solve 
+	# --- 1. show best cell and ask user to solve 
 	# * 2. provide extra hints so the user can solve it
 	# * 3. provide option to add more solved cells so user can move on without hints 
 # 5. solve sudoku to check users answer
@@ -24,6 +25,24 @@ import numpy as np
 	# 1. test for edge cases
 	# 2. test if codes keeps working
 	# 3. test for efficiency
+
+class Question:
+	def __init__(self, title, options):
+		self.title = title if title else "Choose an option."
+		self.options = options if options else []
+
+	def askQuestion(self):
+		print(f"\n{self.title}")
+		for i, option in enumerate(self.options):
+			print(f"{i + 1}. {option}")
+
+		while True:
+			answer = input("\nEnter the number of your choice: ")
+			if answer.isdigit() and 0 < int(answer) <= len(self.options):
+				answer = int(answer) - 1
+				return self.options[answer], answer
+			else:
+				print("\nWrong input. Please pick an option from the list above.")
 
 
 class Sudoku:	
@@ -69,8 +88,14 @@ class Sudoku:
 
 			print()  # Newline after each row
 
+	def is_completed(self):
+		for row in range(self.grid_size):
+			for col in range(self.grid_size):
+				if self.board[row][col] == 0:
+					return False
 
-	# Check if placement is valid
+		return True
+	
 	def is_valid_num(self, row, col, num):
 		for x in range(self.grid_size):
 			if self.board[row][x] == num or self.board[x][col] == num:
@@ -87,7 +112,80 @@ class Sudoku:
 		return True
 
 	def solve_sudoku(self):
-		print("not implemented yet")
+		def askHintOrAll(row, col, score):
+			hintOrAllQuestion = Question("Do you want the next best hint or all the best options?", ['Hint', 'All'])
+			hintOrAllAnswer, hintOrAllIndex = hintOrAllQuestion.askQuestion()
+
+			if hintOrAllIndex == 0:
+				print("\nYou choose the next best hint")
+				print(f"\nRow {row} and column {col} is the next best cell to fill in with a score of {score}")
+			elif hintOrAllIndex == 1:
+				print("\nYou choose all best options")
+
+				if len(single_options) > 0:
+					for r, c, o in single_options:
+						print(f"\nRow {r + 1} and column {c + 1} has one option")
+
+				print(f"\nRow {row} and column {col} is the next best cell to fill in with a score of {score}")
+			else:
+				print("\nInvalid answer")
+				return False
+
+		def askInput():
+			nonlocal self
+			# change to one or multiple when ready
+			inputQuestion = Question("Do you want to give a cell a try?", ['Yes', 'No'])
+			inputAnswer, inputIndex = inputQuestion.askQuestion()
+
+			if inputIndex == 0:
+				rowAnswer = input("\nWhich row? ")
+				while rowAnswer.isdigit() and 1 > int(rowAnswer) > 9:
+					rowAnswer = input("Which row? Please fill in a number between 1 and 9")
+					
+				colAnswer = input("\nWhich column? ")
+				while colAnswer.isdigit() and 1 > int(colAnswer) > 9:
+					colAnswer = input("Which column? Please fill in a number between 1 and 9")
+
+				numAnswer = input("\nWhich number? ")
+				while numAnswer.isdigit() and 1 > int(numAnswer) > 9:
+					numAnswer = input("Which number? Please fill in a number between 1 and 9")
+
+				rowAnswer = int(rowAnswer) - 1
+				colAnswer = int(colAnswer) - 1
+				numAnswer = int(numAnswer)
+
+				if self.is_valid_num(rowAnswer, colAnswer, numAnswer):
+					print("\nNice, this is correct!")
+					self.board[rowAnswer][colAnswer] = numAnswer
+					self.options[rowAnswer][colAnswer] = []
+					self.print_board()
+				else:
+					print("\nToo bad, better next time.")
+			elif inputIndex == 1:
+				print("\n'Till next time!")
+				return False
+			else:
+				print("\nInvalid answer")
+				return False
+
+		if self.is_completed():
+			print("The sudoku is complete!")
+			self.print_board()
+			return False
+		else:
+			options = sudoku.get_options()
+
+			row, col, score, single_options = sudoku.get_best_cell()
+			row += 1
+			col += 1
+
+			askHintOrAll(row, col, score)
+
+			askInput()
+
+
+			self.solve_sudoku()
+			return True
 
 	def get_options(self):
 		for row in range(self.grid_size):
@@ -129,8 +227,8 @@ class Sudoku:
 		score = 0
 		influenced_cells = []
 
-		def calculate_score(self, row, col):
-			nonlocal current_cel, score, influenced_cells
+		def calculate_score(row, col):
+			nonlocal self, current_cel, score, influenced_cells
 			if([row, col] in influenced_cells):
 				return
 			else:
@@ -145,11 +243,11 @@ class Sudoku:
 
 		for r in range(self.grid_size):
 			if(r != row):
-				calculate_score(self, r, col)
+				calculate_score(r, col)
 
 		for c in range(self.grid_size):
 			if(c != col):
-				calculate_score(self, row, c)
+				calculate_score(row, c)
 
 		subgrid_row_start = (row // self.subgrid_size) * self.subgrid_size
 		subgrid_col_start = (col // self.subgrid_size) * self.subgrid_size
@@ -157,7 +255,7 @@ class Sudoku:
 		for r in range(subgrid_row_start, subgrid_row_start + self.subgrid_size):
 			for c in range(subgrid_col_start, subgrid_col_start + self.subgrid_size):
 				if (r != row or c != col):
-					calculate_score(self, r, c)
+					calculate_score(r, c)
 
 		score += len(influenced_cells)
 
@@ -172,31 +270,4 @@ if __name__ == '__main__':
 	sudoku.set_board()
 	print("\nInitial board:")
 	sudoku.print_board()
-	options = sudoku.get_options()
-
-	row, col, score, single_options = sudoku.get_best_cell()
-
-	print("\nNext best options:")
-	if len(single_options) > 0:
-		for r, c, o in single_options:
-			print(f"\nRow {r + 1} and column {c + 1} has one option: {o}")
-	print(f"\nRow {row + 1} and column {col + 1} is the next best cell to fill in with a score of {score}")
-
-
-
-	# if get_options(board, options):
-	# 	print("\nOptions:")
-	# 	print_board(options)
-
-	# 	try:
-	# 		result = get_best_option(options, row, col, next_row, next_col)
-	# 		if(len(result)):
-	# 			best_options.append(result)
-	# 		else:
-	# 			print(result)
-	# 	except Exception as err:
-	# 		print(f"except: {err}")
-
-
-	# else:
-	# 	print("No solution exists")
+	sudoku.solve_sudoku()
