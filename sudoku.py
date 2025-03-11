@@ -73,7 +73,6 @@ class Sudoku:
 		# return self.board
 
 	def print_grid(self, grid = []):
-		breakpoint()
 		if len(grid) == 0:
 			grid = self.board
 		for row in range(self.grid_size):
@@ -102,19 +101,14 @@ class Sudoku:
 			return False
 
 		return True
-
-	def is_solved_num(self, row, col, num):
-		return self.solution[row][col] == num
 	
 	def is_valid_num(self, row, col, num, grid = []):
 		if len(grid) == 0:
 			grid = self.board
 		for x in range(self.grid_size):
 			if grid[row][x] == num and col != x:
-				# breakpoint()
 				return False
 			if grid[x][col] == num and row != x:
-				# breakpoint()
 				return False
 
 		subgrid_row_start, subgrid_col_start = self.get_start_subgrid(row, col)
@@ -123,7 +117,6 @@ class Sudoku:
 			for j in range(self.subgrid_size):
 				if row != i + subgrid_row_start and col != j + subgrid_col_start:
 					if grid[i + subgrid_row_start][j + subgrid_col_start] == num:
-						# breakpoint()
 						return False
 
 		return True
@@ -172,7 +165,6 @@ class Sudoku:
 				return False
 
 		def askInput():
-			nonlocal self
 			# change to one or multiple when ready
 			inputQuestion = Question("Do you want to give a cell a try?", ['Yes', 'No'])
 			inputAnswer, inputIndex = inputQuestion.askQuestion()
@@ -194,13 +186,15 @@ class Sudoku:
 				colAnswer = int(colAnswer) - 1
 				numAnswer = int(numAnswer)
 
-				if self.is_solved_num(rowAnswer, colAnswer, numAnswer):
+				if self.solution[rowAnswer][colAnswer] == numAnswer:
 					print("\nNice, this is correct!")
 					self.board[rowAnswer][colAnswer] = numAnswer
 					self.options[rowAnswer][colAnswer] = []
 					self.print_grid()
+					return False
 				else:
 					print("\nToo bad, better next time.")
+					return False
 			elif inputIndex == 1:
 				print("\n'Till next time!")
 				return False
@@ -221,7 +215,8 @@ class Sudoku:
 
 			askHintOrAll(row, col, score)
 
-			askInput()
+			if not askInput():
+				return False
 
 
 			self.solve_sudoku_with_user()
@@ -316,7 +311,6 @@ if __name__ == '__main__':
 
 	if sudoku.solve_sudoku():
 		end = time.time()
-		print(f"\nSolved in {end - start} seconds")
-		sudoku.print_grid(sudoku.solution)
+		print(f"\nSolved in {end - start:.4f} seconds")
 
 	sudoku.solve_sudoku_with_user()
