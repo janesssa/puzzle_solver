@@ -1,6 +1,5 @@
-import math
+import math, time 
 import numpy as np
-from pick import pick
 
 # TODO
 # 1. cleanup code
@@ -17,8 +16,8 @@ from pick import pick
 	# * 2. provide extra hints so the user can solve it
 	# * 3. provide option to add more solved cells so user can move on without hints 
 # 5. solve sudoku to check users answer
-	# 1. solve the entire sudoku using backtracking
-	# 2. check users answers with solved sudoku
+	# --- 1. solve the entire sudoku using backtracking
+	# --- 2. check users answers with solved sudoku
 # 6. iterate until sudoku is solved
 # 7. cleanup code
 # 8. test code
@@ -70,9 +69,13 @@ class Sudoku:
 		# 			break
 		# 		except ValueError as e:
 		# 			print(e)
+		self.solution = np.array(self.board)
 		# return self.board
 
-	def print_board(self):
+	def print_grid(self, grid = []):
+		breakpoint()
+		if len(grid) == 0:
+			grid = self.board
 		for row in range(self.grid_size):
 			# Print horizontal grid separator every subgrid_size rows
 			if row % self.subgrid_size == 0 and row != 0:
@@ -84,34 +87,71 @@ class Sudoku:
 					print("|", end=" ")  # Add a column separator
 
 				# Print the number, with a period for empty cells (0)
-				print(f"{self.board[row][col] if self.board[row][col] != 0 else '.'}", end=" ")
+				print(f"{grid[row][col] if grid[row][col] != 0 else '.'}", end=" ")
 
 			print()  # Newline after each row
 
-	def is_completed(self):
-		for row in range(self.grid_size):
-			for col in range(self.grid_size):
-				if self.board[row][col] == 0:
-					return False
+	def get_start_subgrid(self, row, col):
+		return self.subgrid_size * (row // self.subgrid_size), self.subgrid_size * (col // self.subgrid_size)
+
+	def is_completed(self, grid = []):
+		if len(grid) == 0:
+			grid = self.board
+
+		if np.count_nonzero(grid) < self.grid_size * self.grid_size:
+			return False
 
 		return True
+
+	def is_solved_num(self, row, col, num):
+		return self.solution[row][col] == num
 	
-	def is_valid_num(self, row, col, num):
+	def is_valid_num(self, row, col, num, grid = []):
+		if len(grid) == 0:
+			grid = self.board
 		for x in range(self.grid_size):
-			if self.board[row][x] == num or self.board[x][col] == num:
+			if grid[row][x] == num and col != x:
+				# breakpoint()
+				return False
+			if grid[x][col] == num and row != x:
+				# breakpoint()
 				return False
 
-		start_row = self.subgrid_size * (row // self.subgrid_size)
-		start_col = self.subgrid_size * (col // self.subgrid_size)
+		subgrid_row_start, subgrid_col_start = self.get_start_subgrid(row, col)
 
 		for i in range(self.subgrid_size):
 			for j in range(self.subgrid_size):
-				if self.board[i + start_row][j + start_col] == num:
-					return False
+				if row != i + subgrid_row_start and col != j + subgrid_col_start:
+					if grid[i + subgrid_row_start][j + subgrid_col_start] == num:
+						# breakpoint()
+						return False
 
 		return True
 
 	def solve_sudoku(self):
+		if self.is_completed(self.solution):
+			return True
+
+		for row in range(self.grid_size):
+			for col in range(self.grid_size):
+				current_cel = self.solution[row][col]
+				current_is_invalid = self.is_valid_num(row, col, current_cel, self.solution) == False
+				if current_cel == 0 or current_is_invalid:
+					for num in range(1, self.grid_size + 1):
+						if self.is_valid_num(row, col, num, self.solution):
+							self.solution[row][col] = num
+
+							if self.solve_sudoku():
+								return True
+							
+							self.solution[row][col] = 0
+
+					return False
+							
+		return False
+
+
+	def solve_sudoku_with_user(self):
 		def askHintOrAll(row, col, score):
 			hintOrAllQuestion = Question("Do you want the next best hint or all the best options?", ['Hint', 'All'])
 			hintOrAllAnswer, hintOrAllIndex = hintOrAllQuestion.askQuestion()
@@ -154,11 +194,11 @@ class Sudoku:
 				colAnswer = int(colAnswer) - 1
 				numAnswer = int(numAnswer)
 
-				if self.is_valid_num(rowAnswer, colAnswer, numAnswer):
+				if self.is_solved_num(rowAnswer, colAnswer, numAnswer):
 					print("\nNice, this is correct!")
 					self.board[rowAnswer][colAnswer] = numAnswer
 					self.options[rowAnswer][colAnswer] = []
-					self.print_board()
+					self.print_grid()
 				else:
 					print("\nToo bad, better next time.")
 			elif inputIndex == 1:
@@ -170,7 +210,7 @@ class Sudoku:
 
 		if self.is_completed():
 			print("The sudoku is complete!")
-			self.print_board()
+			self.print_grid()
 			return False
 		else:
 			options = sudoku.get_options()
@@ -184,7 +224,7 @@ class Sudoku:
 			askInput()
 
 
-			self.solve_sudoku()
+			self.solve_sudoku_with_user()
 			return True
 
 	def get_options(self):
@@ -249,8 +289,7 @@ class Sudoku:
 			if(c != col):
 				calculate_score(row, c)
 
-		subgrid_row_start = (row // self.subgrid_size) * self.subgrid_size
-		subgrid_col_start = (col // self.subgrid_size) * self.subgrid_size
+		subgrid_row_start, subgrid_col_start = self.get_start_subgrid(row, col)
 
 		for r in range(subgrid_row_start, subgrid_row_start + self.subgrid_size):
 			for c in range(subgrid_col_start, subgrid_col_start + self.subgrid_size):
@@ -264,10 +303,20 @@ class Sudoku:
 
 # Main program
 if __name__ == '__main__':
+	start = time.time()
+	
 	grid_size = 9
 	# grid_size = input("What is the size of the grid? ")
+
 	sudoku = Sudoku(9)
 	sudoku.set_board()
+	
 	print("\nInitial board:")
-	sudoku.print_board()
-	sudoku.solve_sudoku()
+	sudoku.print_grid()
+
+	if sudoku.solve_sudoku():
+		end = time.time()
+		print(f"\nSolved in {end - start} seconds")
+		sudoku.print_grid(sudoku.solution)
+
+	sudoku.solve_sudoku_with_user()
