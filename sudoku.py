@@ -18,8 +18,8 @@ import numpy as np
 # 5. solve sudoku to check users answer
 	# --- 1. solve the entire sudoku using backtracking
 	# --- 2. check users answers with solved sudoku
-# 6. iterate until sudoku is solved
-# 7. cleanup code
+	# --- 3. iterate until sudoku is solved
+# 7. --- cleanup code
 # 8. test code
 	# 1. test for edge cases
 	# 2. test if codes keeps working
@@ -46,10 +46,10 @@ class Question:
 
 class Sudoku:	
 	def __init__(self, grid_size=9):
-		self.grid_size = grid_size  # Grid size (default is 9x9)
-		self.subgrid_size = int(math.sqrt(grid_size))  # Subgrid size (e.g., 3 for a 9x9 grid)
-		self.board = np.full((grid_size, grid_size), np.nan)  # Board setup
-		self.solution = np.full((grid_size, grid_size), np.nan)  # Empty solution grid
+		self.grid_size = grid_size
+		self.subgrid_size = int(math.sqrt(grid_size))
+		self.board = np.full((grid_size, grid_size), 0)
+		self.solution = np.full((grid_size, grid_size), 0)
 		self.options = []
 		for i in range(grid_size):
 			self.options.append([])
@@ -57,20 +57,19 @@ class Sudoku:
 				self.options[i].append([])	  
 
 	def set_board(self):
-		self.board = [[5, 3, 0, 0, 7, 0, 0, 0, 0], [6, 0, 0, 1, 9, 5, 0, 0, 0], [0, 9, 8, 0, 0, 0, 0, 6, 0], [8, 0, 0, 0, 6, 0, 0, 0, 3], [4, 0, 0, 8, 0, 3, 0, 0, 1], [7, 0, 0, 0, 2, 0, 0, 0, 6], [0, 6, 0, 0, 0, 0, 2, 8, 0], [0, 0, 0, 4, 1, 9, 0, 0, 5], [0, 0, 0, 0, 8, 0, 0, 7, 9]]
-		# print("Enter the Sudoku board row by row, using 0 for empty cells.")
-		# for i in range(9):
-		# 	while True:
-		# 		try:
-		# 			row = input(f"Row {i + 1}: ").strip()
-		# 			if len(row) != 9 or not row.isdigit():
-		# 				raise ValueError("Please enter exactly 9 digits.")
-		# 			self.board.append([int(num) for num in row])
-		# 			break
-		# 		except ValueError as e:
-		# 			print(e)
+		print("\nEnter the Sudoku board row by row, using 0 for empty cells.")
+		for i in range(self.grid_size):
+			while True:
+				try:
+					row = input(f"Row {i + 1}: ").strip()
+					if len(row) != self.grid_size or not row.isdigit():
+						raise ValueError(f"\nPlease enter exactly {self.grid_size} digits.")
+					self.board[i] = [int(num) for num in row]
+					break
+				except ValueError as e:
+					print(e)
 		self.solution = np.array(self.board)
-		# return self.board
+		return self.board
 
 	def print_grid(self, grid = []):
 		if len(grid) == 0:
@@ -226,8 +225,6 @@ class Sudoku:
 		for row in range(self.grid_size):
 			for col in range(self.grid_size):
 				if(self.board[row][col] == 0):
-					# change to this, if speed matter
-					# for num in range(len(options[row][col]) + 1, 10):
 					for num in range(1, self.grid_size + 1):
 						if self.is_valid_num(row, col, num):
 							if num not in self.options[row][col]:
@@ -300,8 +297,7 @@ class Sudoku:
 if __name__ == '__main__':
 	start = time.time()
 	
-	grid_size = 9
-	# grid_size = input("What is the size of the grid? ")
+	grid_size = input("What is the size of the grid? ")
 
 	sudoku = Sudoku(9)
 	sudoku.set_board()
